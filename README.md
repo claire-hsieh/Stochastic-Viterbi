@@ -1,2 +1,1 @@
-# viterbi
-viterbi algorithm
+# viterbi algorithm
