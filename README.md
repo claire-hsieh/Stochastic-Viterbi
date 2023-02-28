@@ -1,4 +1,4 @@
-# viterbi algorithm
+# Viterbi Algorithm
 
 ## SAMPLE INPUT <br>
 state = [[0.5, 0.5]] <br>
