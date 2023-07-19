@@ -1,0 +1,29 @@
+{
+	"states": 2,
+	"state": [
+		{
+			"name": "rain",
+			"init": 0.5,
+			"term": 0.0,
+			"transitions": 2,
+			"transition": {
+				"rain": 0.7,
+				"no_rain": 0.3
+			},
+			"emissions": 2,
+			"emission": {"umbrella": 0.9, "no_umbrella": 0.1}
+		},
+		{
+			"name": "no_rain",
+			"init": 0.5,
+			"term": 0.0,
+			"transitions": 2,
+			"transition": {
+				"rain": 0.3,
+				"no_rain": 0.7
+			},
+			"emissions": 2,
+			"emission": {"umbrella": 0.2, "no_umbrella": 0.8}
+		}
+	]
+}
