@@ -8,33 +8,33 @@ Transition, emission, and state probabilities are defined in a json file. The fo
 
 ```json
 {
-    "states": ["H", "C"],
-    "start_prob": {
-        "H": 0.6,
-        "C": 0.4
-    },
-    "transition_prob": {
-        "H": {
-            "H": 0.7,
-            "C": 0.3
-        },
-        "C": {
-            "H": 0.4,
-            "C": 0.6
-        }
-    },
-    "emission_prob": {
-        "H": {
-            "1": 0.1,
-            "2": 0.4,
-            "3": 0.5
-        },
-        "C": {
-            "1": 0.7,
-            "2": 0.2,
-            "3": 0.1
-        }
-    }
+	"states": 2,
+	"state": [
+		{
+			"name": "rain",
+			"init": 0.5,
+			"term": 0.0,
+			"transitions": 2,
+			"transition": {
+				"rain": 0.7,
+				"no_rain": 0.3
+			},
+			"emissions": 2,
+			"emission": {"umbrella": 0.9, "no_umbrella": 0.1}
+		},
+		{
+			"name": "no_rain",
+			"init": 0.5,
+			"term": 0.0,
+			"transitions": 2,
+			"transition": {
+				"rain": 0.3,
+				"no_rain": 0.7
+			},
+			"emissions": 2,
+			"emission": {"umbrella": 0.2, "no_umbrella": 0.8}
+		}
+	]
 }
 ```
 
