@@ -55,46 +55,43 @@ def viterbi(transition_file, seq, log=1):
 
 
 
-def stochastic_viterbi(json_file, seq, log=1):
+def stochastic_viterbi(json_file, seq, log=1):    
     state = {}
     transition = {}
     emission = {}
-    with open(json_file) as f:
+    with open(transition_file) as f:
         x = json.load(f)
         for i in range(x['states']):
             temp = x['state'][i]
             state[temp['name']] = temp['init']
             transition[temp['name']] = temp['transition']
             emission[temp['name']] = temp['emission']
-        # set illegal transition to zero probability
-        for trans in transition:
-            if set(transition.keys()) != set(transition[trans].keys()):
-                # check for values in transition.keys that are not in transition[trans].keys() and add to transition[trans].keys()
-                for i in set(transition.keys()) - set(transition[trans].keys()):
-                    transition[trans][i] = 0
-    if type(seq) == str:
-        if "," in seq:
-            seq = seq.split(", ")
-        else:
+        if len(transition) != len(emission):
+            raise ValueError("Transition and emission matrices must be the same length")
+        probability = 1
+        path = []
+        if type(seq) == str:
             seq = [*seq]
-    # Calculate forward probability
-    # forward = dict((key, []) for key in transition.keys())
-    # for o in seq:
-    #     for trans in transition:
-    #         if o == seq[0]:
-    #             if emission[trans][o] == 0 or state[trans] == 0: 
-    #                 fw = 0
-    #             else:
-    #                 fw = math.log10(emission[trans][o]) + math.log10(state[trans])
-    #         else:
-    #             fw = 0
-    #             for prev in transition[trans]:
-    #                 if transition[prev][trans] != 0:
-    #                     fw += math.exp(forward[prev][-1] + math.log10(transition[prev][trans]))
-    #             fw = math.log10(fw) + math.log10(emission[trans][o])
-    #         forward[trans].append(fw)
+        for s,i in zip(seq, range(len(seq))):
+            if i == 0: # if first in seq, use state prob.
+                prob1 = dict((key, 0) for key in transition.keys())
+                for trans in transition.keys():
+                    if state[trans] != 0 and emission[trans][s] != 0: 
+                        prob1[trans] = math.log(state[trans]) + math.log(emission[trans][s])
+            else:
+                prob1 = dict((key, dict((key, 0) for key in transition.keys())) for key in transition.keys())
+                for trans1 in path[i-1].keys(): # iterate through previous states
+                    if i == 1: 
+                        max_prev = path[i-1][max(path[i-1], key= lambda x: path[i-1][x])]
+                    else: 
+                        max_prev = path[i-1][trans1][max(path[i-1][trans1], key= lambda x: path[i-1][trans1][x])]
+                    for trans2 in transition[trans1].keys(): # iterate through current states
+                        # print(trans1, trans2, max_prev, path[i-1][max_prev])#, math.log(transition[trans1][trans2])), math.log(emission[trans2][s]))
+                        prob1[trans2][trans1] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
+            path.append(prob1)
+    return path
 
-
+def forward_backward(json_file, seq, log=1):
     # Compute forward probability
     forward = list(dict((key, 0) for key in transition.keys()) for i in range(len(seq)))
     for ind, o in enumerate(seq):
