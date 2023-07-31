@@ -24,71 +24,39 @@ def viterbi(transition_file, seq, log=1):
             emission[temp['name']] = temp['emission']
         if len(transition) != len(emission):
             raise ValueError("Transition and emission matrices must be the same length")
-        probability = 1
+        trellis = []
         path = []
         if type(seq) == str:
             seq = [*seq]
+        # fill out viterbi trellis
         for s,i in zip(seq, range(len(seq))):
             if i == 0: # if first in seq, use state prob.
-                prob1 = {}
-                for st in state:
-                    prob1[st] = float(state[st] * emission[st][s]) 
-                t_state = max(prob1, key=prob1.get)
-                path.append(t_state) # add max probability to path
-                if log == 1:
-                    prev_prob = math.log2(prob1[path[0]])
-                else:
-                    prev_prob = prob1[path[0]]
-                prev_state = t_state
-            else:
-                prob = {}           
-                for t in transition:      
-                    if log == 1:
-                        prob[t] = prev_prob +  math.log2(transition[prev_state][t] * emission[t][s])
-                    else:
-                        prob[t] = prev_prob * (transition[prev_state][t] * emission[t][s])
-                x = max(prob, key=prob.get)
-                path.append(x)
-                prev_prob = prob[x]
-                prev_state = x
-    return path, prev_prob
-
-
-
-def stochastic_viterbi(json_file, seq, log=1):    
-    state = {}
-    transition = {}
-    emission = {}
-    with open(transition_file) as f:
-        x = json.load(f)
-        for i in range(x['states']):
-            temp = x['state'][i]
-            state[temp['name']] = temp['init']
-            transition[temp['name']] = temp['transition']
-            emission[temp['name']] = temp['emission']
-        if len(transition) != len(emission):
-            raise ValueError("Transition and emission matrices must be the same length")
-        probability = 1
-        path = []
-        if type(seq) == str:
-            seq = [*seq]
-        for s,i in zip(seq, range(len(seq))):
-            if i == 0: # if first in seq, use state prob.
-                prob1 = dict((key, 0) for key in transition.keys())
+                prob1 = dict((key, 0) for key in state.keys())
                 for trans in transition.keys():
                     if state[trans] != 0 and emission[trans][s] != 0: 
                         prob1[trans] = math.log(state[trans]) + math.log(emission[trans][s])
             else:
-                prob1 = dict((key, dict((key, 0) for key in transition.keys())) for key in transition.keys())
-                for trans1 in path[i-1].keys(): # iterate through previous states
+                prob1 = dict((key1, dict((key2, 0) for key2 in transition[key1].keys())) for key1 in transition.keys())
+                for trans1 in trellis[i-1].keys(): # iterate through previous states
                     if i == 1: 
-                        max_prev = path[i-1][max(path[i-1], key= lambda x: path[i-1][x])]
+                        max_prev = trellis[i-1][max(trellis[i-1], key= lambda x: trellis[i-1][x])]
                     else: 
-                        max_prev = path[i-1][trans1][max(path[i-1][trans1], key= lambda x: path[i-1][trans1][x])]
-                    for trans2 in transition[trans1].keys(): # iterate through current states
+                        max_prev = trellis[i-1][trans1][max(trellis[i-1][trans1], key= lambda x: trellis[i-1][trans1][x])]
+                    for trans2 in prob1[trans1].keys(): # iterate through current states
                         # print(trans1, trans2, max_prev, path[i-1][max_prev])#, math.log(transition[trans1][trans2])), math.log(emission[trans2][s]))
-                        prob1[trans2][trans1] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
-            path.append(prob1)
+                        prob1[trans1][trans2] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
+            trellis.append(prob1)
+
+        # traceback
+        temp = dict((key, {}) for key in state.keys())
+        for i in range(len(trellis)-1, 1, -1):
+            for trans1 in trellis[i]: # loop through last state
+                for trans4 in trellis[i-1]: # loop through second to last state
+                    max_state = max(trellis[i-1][trans4], key= lambda x: trellis[i-1][trans4][x])    
+                    temp[trans4][max_state] = trellis[-1][trans4][max_state]
+            max_state = max(temp, key= lambda x: list(temp[x].values())[0])
+            path.append(list(temp[max_state].keys())[0]) # add last state to path
+            path.append(max_state) # add second to last state to path      
     return path
 
 def forward_backward(json_file, seq, log=1):
