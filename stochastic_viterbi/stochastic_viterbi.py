@@ -10,7 +10,8 @@ import random
 # parser.add_argument('jsonhmm', type=str, required=True, help="json file of transition and emission probabilities")
 # arg = parser.parse_args()
 
-def stochastic_viterbi(transition_file, seq, tr):
+def stochastic_viterbi(transition_file, seq, illegal):
+    # illegal: list of illegal states to end in 
     state = {}
     transition = {}
     emission = {}
@@ -45,15 +46,10 @@ def stochastic_viterbi(transition_file, seq, tr):
                         # print(trans1, trans2, max_prev, path[i-1][max_prev])#, math.log(transition[trans1][trans2])), math.log(emission[trans2][s]))
                         prob1[trans1][trans2] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
             trellis.append(prob1)       
-
-        # traceback
-        multiple_traceback(trellis, state, paths, tr)
-        # elif tr == 1: # multiple traceback
-            # loop through all 
-            # for i in range(len(trellis)):
+        multiple_traceback(trellis, state, paths, illegal)
                 
 
-        return trellis, paths
+    return trellis, paths
 
 def traceback(trellis, state, path):
     temp = dict((key, {}) for key in state.keys())
@@ -67,12 +63,12 @@ def traceback(trellis, state, path):
         path.append(max_state) # add second to last state to path      
     return path
 
-def multiple_traceback(trellis, state, paths, tr):
-    # tr = number of tracebacks
+def max_traceback(trellis, state, paths, illegal):
     temp = dict((key, {}) for key in state.keys())
+    states = [i for i in state if i not in illegal]
     path = []
-    for p in range(tr):
-        max_state = random.choice(list(state.keys()))
+    for s in states:
+        max_state = s
         for i in range(len(trellis)-2, 1, -1):
             for trans1 in trellis[i]: # loop through last state
                 for trans4 in trellis[i-1]: # loop through second to last state
@@ -81,6 +77,17 @@ def multiple_traceback(trellis, state, paths, tr):
         max_state = max(temp, key= lambda x: list(temp[x].values())[0])
         path.append(list(temp[max_state].keys())[0]) # add last state to path
         path.append(max_state) # add second to last state to path 
+        paths.append(path) 
+    return paths
+
+def multiple_traceback(trellis, transition, paths, illegal):
+    states = [i for i in transition.keys() if i not in illegal]
+    for s in states:
+        path = []
+        prev_state = s
+        for i in range(len(trellis)-1, -1, -1):
+            prev_state = random.choice([i for i in transition.keys() if prev_state in transition[i]])
+            path.append(prev_state) 
         paths.append(path) 
     return paths
 
