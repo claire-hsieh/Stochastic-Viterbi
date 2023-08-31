@@ -5,7 +5,7 @@ import json
 json_file = "./tests/stoch_hmm.json"
 seq = "umbrella, umbrella, no_umbrella, umbrella, umbrella"
 seq = seq.split(", ")
-forward_ts, backward_ts, smoothed_ts = stochastic_viterbi.stochastic_viterbi(json_file, seq)
+forward_ts, backward_ts, smoothed_ts = stochastic_viterbi.forward_backward(json_file, seq)
 
 def test_forward():
     vals = [0.5, 0.5, 0.8182, 0.181, 0.8834, 0.1166, 0.1907, 0.8093, 0.7308, 0.2692, 0.8673, 0.1327]

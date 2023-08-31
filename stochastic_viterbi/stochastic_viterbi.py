@@ -10,7 +10,7 @@ import random
 # parser.add_argument('jsonhmm', type=str, required=True, help="json file of transition and emission probabilities")
 # arg = parser.parse_args()
 
-def stochastic_viterbi(transition_file, seq, illegal):
+def stochastic_viterbi(transition_file, seq, illegal, trials=100):
     # illegal: list of illegal states to end in 
     state = {}
     transition = {}
@@ -46,10 +46,8 @@ def stochastic_viterbi(transition_file, seq, illegal):
                         # print(trans1, trans2, max_prev, path[i-1][max_prev])#, math.log(transition[trans1][trans2])), math.log(emission[trans2][s]))
                         prob1[trans1][trans2] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
             trellis.append(prob1)       
-        multiple_traceback(trellis, state, paths, illegal)
-                
-
-    return trellis, paths
+        multiple_traceback(trellis, state, paths, illegal, trials)
+        return trellis, paths
 
 def traceback(trellis, state, path):
     temp = dict((key, {}) for key in state.keys())
@@ -80,18 +78,20 @@ def max_traceback(trellis, state, paths, illegal):
         paths.append(path) 
     return paths
 
-def multiple_traceback(trellis, transition, paths, illegal):
+def multiple_traceback(trellis, transition, paths, illegal, trials):
     states = [i for i in transition.keys() if i not in illegal]
-    for s in states:
+    for t in range(trials):
+        prev_state = random.choice(states)
         path = []
-        prev_state = s
         for i in range(len(trellis)-1, -1, -1):
-            prev_state = random.choice([i for i in transition.keys() if prev_state in transition[i]])
+            possible_ts_states = [i for i in transition.keys() if prev_state in transition[i].keys()]
+            probabilities = [transition[i][prev_state] for i in possible_ts_states]
+            prev_state = random.choices(possible_ts_states, weights = probabilities, k=1)[0]
             path.append(prev_state) 
         paths.append(path) 
     return paths
 
-def forward_backward(json_file, seq, log=1):
+def forward_backward(json_file, seq):
     state = {}
     transition = {}
     emission = {}
@@ -112,16 +112,12 @@ def forward_backward(json_file, seq, log=1):
             fw = 0
             if ind == 0:
                 if not(emission[trans][o] == 0 or state[trans] == 0):
-                    fw = emission[trans][o] * state[trans]
+                    fw = math.log(emission[trans][o]) + math.log(state[trans])
             else:
                 for prev in transition[trans]:
-                    if transition[prev][trans] != 0:
-                        fw += forward[ind-1][prev] * transition[prev][trans] * emission[trans][o]
+                    if trans in transition[prev]: # and transition[prev][trans] != 0:
+                        fw += forward[ind-1][prev] + math.log(transition[prev][trans]) + math.log(emission[trans][o])
             forward[ind][trans] = fw
-        # normalize
-        tot = sum(forward[ind].values())
-        for t in forward[ind]: 
-            forward[ind][t] /= tot
     forward.insert(0, dict((key, state[key]) for key in transition.keys()))
 
     # Compute backward probability
@@ -131,27 +127,19 @@ def forward_backward(json_file, seq, log=1):
         for trans in transition:
             bw = 0
             for next in transition[trans]:
-                if transition[next][trans] != 0:
-                    # print(ind, o, trans, next, backward[ind+1][next], transition[trans][next], emission[next][o])
-                    bw += backward[ind+1][next] * transition[next][trans] * emission[next][o]
+                if trans in transition[next]: #if transition[next][trans] != 0:
+                    bw += backward[ind+1][next] + math.log(transition[next][trans]) + math.log(emission[next][o])
             backward[ind][trans] = bw
-        # normalize
-        tot = sum(backward[ind].values())
-        for t in backward[ind]:
-            backward[ind][t] /= tot
+
 
     # Compute smoothed values
     smoothed = list(dict((key, 0) for key in transition.keys()) for i in range(len(seq)))
     smoothed.insert(0, dict((key, backward[0][key] * forward[0][key]) for key in transition.keys()))
     for ind in range(len(forward)):
         for trans in transition.keys():
-            smoothed[ind][trans] = backward[ind][trans] * forward[ind][trans]
-        # normalize
-        tot = sum(smoothed[ind].values())
-        for t in smoothed[ind]:
-            smoothed[ind][t] /= tot
-    
-    return forward, backward, smoothed
+            smoothed[ind][trans] = backward[ind][trans] + forward[ind][trans]
+
+    return smoothed
 
 
 ### FORMAT OF TRELLIS ###
@@ -160,5 +148,5 @@ def forward_backward(json_file, seq, log=1):
 ### TO DO ###
 # calculate probability of path 
 # apply forward backward to path (seperate)
-# do MULTIPLE traceback: add random element 
+# do MULTIPLE traceback: add random element [DONE]
 # figure out way to do documentation
