@@ -3,14 +3,16 @@ import argparse
 import json
 import random
 
-# parser = argparse.ArgumentParser(
-# 	description='General Stochastic Viterbi Algorithm')
-# parser.add_argument('-seq', type=list, required=True,
-# 	default=[], help = 'sequence')
-# parser.add_argument('jsonhmm', type=str, required=True, help="json file of transition and emission probabilities")
-# arg = parser.parse_args()
+parser = argparse.ArgumentParser(
+	description='General Stochastic Viterbi Algorithm')
+parser.add_argument('-s', type=str, required=True,
+	default=[], help = 'file containing sequence of observations')
+parser.add_argument('-j', type=str, help="json file of transition and emission probabilities")
+parser.add_argument('-i', type=str, help="file of illegal states to end in")
+parser.add_argument('-t', type=int, default=100)
+arg = parser.parse_args()
 
-def stochastic_viterbi(transition_file, seq, illegal, trials=100):
+def stochastic_viterbi(transition_file, seq, illegal, trials):
     # illegal: list of illegal states to end in 
     state = {}
     transition = {}
@@ -45,8 +47,9 @@ def stochastic_viterbi(transition_file, seq, illegal, trials=100):
                     for trans2 in prob1[trans1].keys(): # iterate through current states
                         # print(trans1, trans2, max_prev, path[i-1][max_prev])#, math.log(transition[trans1][trans2])), math.log(emission[trans2][s]))
                         prob1[trans1][trans2] = max_prev + max_prev + math.log(transition[trans1][trans2]) + math.log(emission[trans2][s])
-            trellis.append(prob1)       
-        multiple_traceback(trellis, state, paths, illegal, trials)
+            trellis.append(prob1)
+        smoothed = forward_backward(transition_file, seq)       
+        multiple_traceback(trellis, transition, smoothed, paths, illegal, trials)
         return trellis, paths
 
 def traceback(trellis, state, path):
@@ -78,17 +81,19 @@ def max_traceback(trellis, state, paths, illegal):
         paths.append(path) 
     return paths
 
-def multiple_traceback(trellis, transition, paths, illegal, trials):
+def multiple_traceback(trellis, transition, fw, paths, illegal, trials):
     states = [i for i in transition.keys() if i not in illegal]
     for t in range(trials):
         prev_state = random.choice(states)
         path = []
+        prob = 0
         for i in range(len(trellis)-1, -1, -1):
             possible_ts_states = [i for i in transition.keys() if prev_state in transition[i].keys()]
             probabilities = [transition[i][prev_state] for i in possible_ts_states]
             prev_state = random.choices(possible_ts_states, weights = probabilities, k=1)[0]
-            path.append(prev_state) 
-        paths.append(path) 
+            path.append(prev_state)
+            prob += fw[i][prev_state]
+        paths.append([path, prob])
     return paths
 
 def forward_backward(json_file, seq):
@@ -141,6 +146,16 @@ def forward_backward(json_file, seq):
 
     return smoothed
 
+with open(arg.i) as f:
+    illegal = f.read().replace('"', '') 
+    illegal = illegal.split('\n')
+
+with open(arg.s) as f:
+    seqs = f.read().strip()
+    seqs = seqs.split('\n')
+    for i in seqs:
+        print(stochastic_viterbi(arg.j, i, illegal, arg.t))
+
 
 ### FORMAT OF TRELLIS ###
 # trellis = [{initial_state: log_probability}, {current_state: {previous_state: log_probability}, ... }]
@@ -150,3 +165,5 @@ def forward_backward(json_file, seq):
 # apply forward backward to path (seperate)
 # do MULTIPLE traceback: add random element [DONE]
 # figure out way to do documentation
+
+# python ../stochastic_viterbi.py -s sample.txt -j stoch_hmm.json -i illegal.txt -t 100

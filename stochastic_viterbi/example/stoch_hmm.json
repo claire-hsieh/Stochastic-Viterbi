@@ -1,0 +1,42 @@
+{
+	"states": 3,
+	"state": [
+		{
+			"name": "exon",
+			"init": 1.0,
+			"term": 1.0,
+			"transitions": 2,
+			"transition": {
+				"exon": 0.99,
+				"intron": 0.01
+			},
+			"emissions": 4,
+			"emission": {"A": 0.3, "C": 0.2, "G": 0.2, "T": 0.3}
+		},
+		{
+			"name": "intron",
+			"init": 0,
+			"term": 0,
+			"transitions": 3,
+			"transition": {
+				"exon": 0.01,
+				"intron": 0.98,
+				"utr": 0.01
+			},
+			"emissions": 4,
+			"emission": {"A": 0.25, "C": 0.25, "G": 0.25, "T": 0.25}
+		},
+		{
+			"name": "utr",
+			"init": 0.0,
+			"term": 0.0,
+			"transitions": 2,
+			"transition": {
+				"utr": 0.98,
+				"exon": 0.02
+			},
+			"emissions": 4,
+			"emission": {"A": 0.2, "C": 0.3, "G": 0.3, "T": 0.2}		
+		}
+	]
+}
