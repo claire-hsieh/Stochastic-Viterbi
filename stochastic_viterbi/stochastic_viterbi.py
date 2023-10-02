@@ -154,16 +154,22 @@ with open(arg.s) as f:
     seqs = f.read().strip()
     seqs = seqs.split('\n')
     for i in seqs:
-        print(stochastic_viterbi(arg.j, i, illegal, arg.t))
+        trellis, paths = stochastic_viterbi(arg.j, i, illegal, arg.t)
+        print(paths)
 
 
 ### FORMAT OF TRELLIS ###
 # trellis = [{initial_state: log_probability}, {current_state: {previous_state: log_probability}, ... }]
 
+### FORMAT OF PATH ###
+# path = [last_state, second_to_last_state, ...]
+# IT'S BACKWARDS
+
 ### TO DO ###
-# calculate probability of path 
-# apply forward backward to path (seperate)
-# do MULTIPLE traceback: add random element [DONE]
+# calculate probability of path [X]
+# apply forward backward to path (seperate) [X]
+# do MULTIPLE traceback: add random element [X]
 # figure out way to do documentation
 
+# run from examples folder
 # python ../stochastic_viterbi.py -s sample.txt -j stoch_hmm.json -i illegal.txt -t 100
